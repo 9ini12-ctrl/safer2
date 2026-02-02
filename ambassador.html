@@ -75,11 +75,22 @@
 
       <div class="card hidden" data-real>
         <div class="cardInner">
+          <div class="cardTitle">خطة اليوم</div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button class="primaryBtn" id="shareBtn">شارك الآن</button>
+            <button class="iconBtn" id="copyBtn"><span class="k">نسخ</span></button>
+            <button class="iconBtn" id="waBtn"><span class="k">واتساب</span></button>
+          </div>
+
+          <div class="smallNote" style="margin-top:10px" id="tasksMeta">—</div>
+          <ul class="list" id="tasksList" style="margin-top:8px"></ul>
+
+          <div class="hairline"></div>
+
           <div class="cardTitle">رسالة اليوم</div>
           <img id="dailyImg" class="hidden" alt="daily" style="border-radius:18px; border:1px solid var(--hairline); margin-bottom:10px"/>
           <div style="font-weight:980; line-height:1.65" id="dailyMsg">—</div>
-          <div style="height:12px"></div>
-          <button class="primaryBtn" id="shareBtn">مشاركة</button>
           <div class="smallNote" style="margin-top:10px">على الجوال: مشاركة مباشرة، وعلى الكمبيوتر: نسخ للرسالة.</div>
         </div>
       </div>

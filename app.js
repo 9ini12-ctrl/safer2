@@ -14,6 +14,49 @@ function applyReferralTemplate(message, referral){
   return msg.split("#كود-الإحالة").join(rep);
 }
 
+function baseURL(){
+  try{ return new URL("./", location.href); }catch{ return { href:"/" }; }
+}
+
+function shareLinkFor(row){
+  if (row && row.share_url) return String(row.share_url).trim();
+  try{
+    const b = baseURL();
+    return new URL(`ambassador.html?id=${encodeURIComponent(row.ambassador_id||"")}`, b).href;
+  }catch{
+    return location.href;
+  }
+}
+
+function buildShareMessage(daily, referralLink){
+  const link = String(referralLink || "").trim();
+  let msg = applyReferralTemplate((daily && daily.message) || "شاركنا الأجر", link);
+  if (link && !msg.includes(link)) msg = (msg.trim() + "\n" + link).trim();
+  const img = (daily && daily.image_url) ? String(daily.image_url).trim() : "";
+  if (img && !msg.includes(img)) msg = (msg.trim() + "\n" + img).trim();
+  return msg.trim();
+}
+
+function parseDateFlexible(s){
+  const v = String(s||"").trim();
+  if (!v) return null;
+  // ISO or YYYY-MM-DD
+  const m = v.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m){
+    const d = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function daysSince(date){
+  if (!date) return null;
+  const ms = Date.now() - date.getTime();
+  if (!Number.isFinite(ms)) return null;
+  return Math.floor(ms / (1000*60*60*24));
+}
+
 function cacheBust(url){ return `${url}?v=${Date.now()}`; }
 
 function toast(msg){
@@ -296,17 +339,84 @@ async function initAmbassador(){
       img.classList.remove("hidden");
     }
 
-    qs("#shareBtn").addEventListener("click", async ()=>{
-      const referral = me.share_url || location.href;
-      let msg = applyReferralTemplate(daily.message || "شاركنا الأجر", referral);
-      if (!msg.includes(referral)) msg = (msg.trim() + "\n" + referral).trim();
-      if (daily.image_url && !msg.includes(daily.image_url)) msg = (msg.trim() + "\n" + daily.image_url).trim();
-      if (navigator.share){
-        try{ await navigator.share({ text: msg, url }); toast("تمت المشاركة ✅"); return; }catch{}
-      }
+    // Today coach (tasks)
+    const dateKey = (daily.date || new Date().toISOString().slice(0,10)).trim();
+    const stateKey = `tasks_${me.ambassador_id||""}_${dateKey}`;
+    const readState = ()=>{
+      try{ return JSON.parse(localStorage.getItem(stateKey) || "{}") || {}; }catch{ return {}; }
+    };
+    const writeState = (st)=>{
+      try{ localStorage.setItem(stateKey, JSON.stringify(st||{})); }catch{}
+    };
+
+    const autoBoxesDone = me.daily_target_boxes>0 && me.today_opened_boxes>=me.daily_target_boxes;
+    const autoAmountDone = me.daily_target_amount>0 && me.today_amount>=me.daily_target_amount;
+
+    const renderTasks = ()=>{
+      const st = readState();
+      const tasks = [
+        { key:"share", text:"شارك رسالة اليوم في 5 جهات", done: !!st.share },
+        { key:"boxes", text:`افتح ${me.daily_target_boxes.toLocaleString("ar-SA")} صناديق فعّالة (اليوم: ${me.today_opened_boxes.toLocaleString("ar-SA")})`, done: autoBoxesDone, locked:true },
+        { key:"amount", text:`حقق ${me.daily_target_amount.toLocaleString("ar-SA")} ريال (اليوم: ${me.today_amount.toLocaleString("ar-SA")})`, done: autoAmountDone, locked:true },
+      ];
+      const total = tasks.length;
+      const done = tasks.filter(t=>t.done).length;
+      const meta = qs("#tasksMeta");
+      if (meta) meta.textContent = `خطة اليوم • تم إنجاز ${done} من ${total} • تاريخ: ${dateKey}`;
+      const ul = qs("#tasksList");
+      if (!ul) return;
+      ul.innerHTML = "";
+      tasks.forEach(t=>{
+        const li = document.createElement("li");
+        li.className = "cell";
+        li.innerHTML = `
+          <div>
+            <div class="value">${t.text}</div>
+            <div class="label">${t.locked ? "تتحدث تلقائيًا من بيانات اليوم" : "اضغط للتحديد"}</div>
+          </div>
+          <div style="text-align:left">
+            <div class="value">${t.done ? "✅" : "⬜️"}</div>
+          </div>`;
+        if (!t.locked){
+          li.style.cursor = "pointer";
+          li.addEventListener("click", ()=>{
+            const ns = readState();
+            ns[t.key] = !ns[t.key];
+            writeState(ns);
+            renderTasks();
+          });
+        }
+        ul.appendChild(li);
+      });
+      if (done === total) toast("ممتاز! خلصت خطة اليوم ✅");
+    };
+    renderTasks();
+
+    // Sharing
+    const doCopy = async ()=>{
+      const msg = buildShareMessage(daily, shareLinkFor(me));
       try{ await navigator.clipboard.writeText(msg); toast("تم النسخ ✅"); }
       catch{ alert("انسخ الرسالة:\n\n" + msg); }
-    });
+    };
+    const doWhatsApp = ()=>{
+      const msg = buildShareMessage(daily, shareLinkFor(me));
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    };
+    const doShare = async ()=>{
+      const msg = buildShareMessage(daily, shareLinkFor(me));
+      if (navigator.share){
+        try{ await navigator.share({ text: msg }); toast("تمت المشاركة ✅"); return; }catch{}
+      }
+      await doCopy();
+    };
+
+    const shareBtn = qs("#shareBtn");
+    if (shareBtn) shareBtn.addEventListener("click", doShare);
+    const copyBtn = qs("#copyBtn");
+    if (copyBtn) copyBtn.addEventListener("click", doCopy);
+    const waBtn = qs("#waBtn");
+    if (waBtn) waBtn.addEventListener("click", doWhatsApp);
 
     qs("#refreshBtn").addEventListener("click", ()=> location.reload());
     const lo = qs("#logoutBtn");
@@ -453,18 +563,108 @@ async function initAdmin(){
       catch{ alert(txt); }
     });
 
-    // top ambassadors
-    const topA = [...ambassadors].sort((a,b)=> b.today_amount - a.today_amount).slice(0,10);
-    const ulA = qs("#topAmb"); ulA.innerHTML="";
-    topA.forEach(r=>{
-      const li=document.createElement("li"); li.className="cell";
-      li.innerHTML = `
-        <div><div class="value">${r.name}</div><div class="label">${r.branch}</div></div>
-        <div style="text-align:left"><div class="value">${fmtSAR(r.today_amount)}</div>
-        <div class="value small">${r.today_opened_boxes.toLocaleString("ar-SA")} صناديق</div></div>`;
-      li.addEventListener("click", ()=>{ toast("للدخول كسفير: سجّل خروج ثم ادخل برمز السفير"); });
-      ulA.appendChild(li);
-    });
+    // Alerts
+    const segSt=qs("#segStalled"), segNe=qs("#segNear"), segTop=qs("#segTop");
+    const vSt=qs("#viewStalled"), vNe=qs("#viewNear"), vTop=qs("#viewTop");
+    const setSeg = (w)=>{
+      const isSt = w==="st", isNe = w==="ne", isTop = w==="top";
+      if (segSt) segSt.classList.toggle("active", isSt);
+      if (segNe) segNe.classList.toggle("active", isNe);
+      if (segTop) segTop.classList.toggle("active", isTop);
+      if (vSt) vSt.classList.toggle("hidden", !isSt);
+      if (vNe) vNe.classList.toggle("hidden", !isNe);
+      if (vTop) vTop.classList.toggle("hidden", !isTop);
+    };
+    if (segSt) segSt.addEventListener("click", ()=> setSeg("st"));
+    if (segNe) segNe.addEventListener("click", ()=> setSeg("ne"));
+    if (segTop) segTop.addEventListener("click", ()=> setSeg("top"));
+
+    const makeActions = (r)=>{
+      const msg = buildShareMessage(daily, shareLinkFor(r));
+      return {
+        copy: async ()=>{
+          try{ await navigator.clipboard.writeText(msg); toast("تم النسخ ✅"); }
+          catch{ alert(msg); }
+        },
+        wa: ()=>{
+          const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+      };
+    };
+    const renderList = (el, items, kind)=>{
+      if (!el) return;
+      el.innerHTML = "";
+      if (!items.length){
+        const li=document.createElement("li"); li.className="cell";
+        li.innerHTML = `<div><div class="value">لا يوجد</div><div class="label">—</div></div>`;
+        el.appendChild(li);
+        return;
+      }
+      items.forEach(r=>{
+        const acts = makeActions(r);
+        const li=document.createElement("li"); li.className="cell";
+        const reason = r.__reason ? `<div class="label">${r.__reason}</div>` : "";
+        li.innerHTML = `
+          <div>
+            <div class="value">${r.name}</div>
+            <div class="label">${[r.branch, r.group].filter(Boolean).join(" • ")}</div>
+            ${reason}
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end">
+            <button class="iconBtn" data-act="copy"><span class="k">نسخ</span></button>
+            <button class="iconBtn" data-act="wa"><span class="k">واتساب</span></button>
+          </div>`;
+        qs("[data-act='copy']", li).addEventListener("click", (e)=>{ e.stopPropagation(); acts.copy(); });
+        qs("[data-act='wa']", li).addEventListener("click", (e)=>{ e.stopPropagation(); acts.wa(); });
+        li.addEventListener("click", ()=>{ toast("للدخول كسفير: سجّل خروج ثم ادخل برمز السفير"); });
+        el.appendChild(li);
+      });
+    };
+
+    // stalled
+    const stalled = ambassadors
+      .map(r=>{
+        const d = parseDateFlexible(r.updated_at);
+        const ds = daysSince(d);
+        const noToday = (r.today_amount<=0 && r.today_opened_boxes<=0);
+        let reason = "";
+        if (ds !== null && ds >= 3) reason = `آخر تحديث قبل ${ds} يوم`;
+        else if (noToday) reason = "لم ينشط اليوم";
+        if (!reason) return null;
+        return { ...r, __reason: reason, __score: (ds!==null? ds : (noToday? 3:0)) };
+      })
+      .filter(Boolean)
+      .sort((a,b)=> b.__score - a.__score)
+      .slice(0, 12);
+
+    // near to goal (amount or boxes)
+    const near = ambassadors
+      .map(r=>{
+        const pA = r.daily_target_amount ? (r.today_amount / r.daily_target_amount) : 0;
+        const pB = r.daily_target_boxes ? (r.today_opened_boxes / r.daily_target_boxes) : 0;
+        const p = Math.max(pA, pB);
+        if (!(p >= 0.85 && p < 1)) return null;
+        const pctTxt = (p*100).toFixed(0) + "%";
+        let reason = `قريب من الهدف (${pctTxt})`;
+        if (pA >= pB && r.daily_target_amount) reason = `قريب من هدف المبلغ (${pctTxt})`;
+        if (pB > pA && r.daily_target_boxes) reason = `قريب من هدف الصناديق (${pctTxt})`;
+        return { ...r, __reason: reason, __score: p };
+      })
+      .filter(Boolean)
+      .sort((a,b)=> b.__score - a.__score)
+      .slice(0, 12);
+
+    // top today
+    const topA = [...ambassadors].sort((a,b)=> b.today_amount - a.today_amount).slice(0,12);
+    topA.forEach(r=>{ r.__reason = `اليوم: ${fmtSAR(r.today_amount)} • ${r.today_opened_boxes.toLocaleString("ar-SA")} صناديق`; });
+
+    renderList(qs("#stalledList"), stalled, "stalled");
+    renderList(qs("#nearList"), near, "near");
+    renderList(qs("#topTodayList"), topA, "top");
+
+    const meta = qs("#alertsMeta");
+    if (meta) meta.textContent = `متوقفين: ${stalled.length.toLocaleString("ar-SA")} • قريبين: ${near.length.toLocaleString("ar-SA")} • أفضل اليوم: ${topA.length.toLocaleString("ar-SA")}`;
 
     // top branches
     const by = new Map();

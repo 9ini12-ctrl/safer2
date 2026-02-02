@@ -82,8 +82,29 @@
 
       <div class="card hidden" data-real>
         <div class="cardInner">
-          <div class="cardTitle">السفراء الأعلى اليوم</div>
-          <ul class="list" id="topAmb"></ul>
+          <div class="cardTitle">تنبيهات الإدارة</div>
+          <div class="smallNote">قائمة سريعة لمن يحتاج دفعة الآن + نسخ رسالة موجهة لكل سفير.</div>
+
+          <div style="height:10px"></div>
+
+          <div class="segment">
+            <button class="segBtn active" id="segStalled">متوقفين</button>
+            <button class="segBtn" id="segNear">قريبين</button>
+            <button class="segBtn" id="segTop">الأفضل اليوم</button>
+          </div>
+
+          <div style="height:10px"></div>
+          <div class="pill" id="alertsMeta">—</div>
+
+          <div id="viewStalled">
+            <ul class="list" id="stalledList" style="margin-top:10px"></ul>
+          </div>
+          <div id="viewNear" class="hidden">
+            <ul class="list" id="nearList" style="margin-top:10px"></ul>
+          </div>
+          <div id="viewTop" class="hidden">
+            <ul class="list" id="topTodayList" style="margin-top:10px"></ul>
+          </div>
         </div>
       </div>
 
