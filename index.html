@@ -3,60 +3,28 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>تسجيل الدخول</title>
+  <title>منصة السفراء</title>
   <link rel="stylesheet" href="./ui.css"/>
 </head>
 <body>
   <div class="shell">
     <div class="app">
 
-      <div class="nav" data-page="login">
+      <div class="nav">
         <div class="navbar">
           <div class="side">
-            <span class="pill">منصة <b>السفراء</b></span>
+            <span class="pill">نسخة <b>عرض</b></span>
           </div>
-          <div class="navTitle">تسجيل الدخول</div>
+          <div class="navTitle">منصة السفراء</div>
           <div class="side" style="justify-content:flex-end">
-            <span class="pill">v2</span>
+            <a class="iconBtn" href="./admin.html"><span class="k">الإدارة</span></a>
           </div>
         </div>
-        <div class="largeTitle">ادخل بالرمز</div>
-        <div class="subTitle">السفير • الفرع • الإدارة</div>
+        <div class="largeTitle">لوحات الأداء</div>
+        <div class="subTitle">سفير • مدير فرع • إدارة</div>
       </div>
 
-      <div class="card">
-        <div class="cardInner">
-          <div class="cardTitle">اختر نوع الدخول</div>
-          <div class="segment">
-            <button class="segBtn active" id="roleAmb">سفير</button>
-            <button class="segBtn" id="roleBranch">فرع</button>
-            <button class="segBtn" id="roleAdmin">إدارة</button>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="cardTitle">الرمز</div>
-          <input class="input" id="loginCode" inputmode="text" autocomplete="one-time-code" placeholder="مثال: 83923 أو 0123 أو admin"/>
-
-          <div style="height:12px"></div>
-          <button class="primaryBtn" id="loginBtn">دخول</button>
-
-          <div class="hairline"></div>
-
-          <div class="cardTitle">أمثلة سريعة</div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap">
-            <button class="iconBtn" id="exAmb"><span class="k">سفير</span> 83923</button>
-            <button class="iconBtn" id="exBranch"><span class="k">فرع</span> 0123</button>
-            <button class="iconBtn" id="exAdmin"><span class="k">إدارة</span> admin</button>
-          </div>
-
-          <div class="smallNote" style="margin-top:12px">
-            🔒 لا يمكنك التنقل بين (السفير/الفرع/الإدارة) إلا عبر <b>تسجيل الخروج</b> ثم الدخول مرة أخرى.
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
+      <div class="card" data-page="home">
         <div class="cardInner">
           <div class="cardTitle">رسالة اليوم</div>
           <img id="dailyImg" class="hidden" alt="daily" style="border-radius:18px; border:1px solid var(--hairline); margin-bottom:10px"/>
@@ -68,8 +36,48 @@
 
       <div class="card">
         <div class="cardInner">
-          <div class="cardTitle">مصدر البيانات</div>
-          <div class="smallNote">تحديث الأرقام يتم عبر رفع ملف <b>data/safaraa.csv</b> و <b>data/daily.json</b> إلى GitHub، ثم يصل للجميع تلقائيًا عبر الجلب.</div>
+          <div class="cardTitle">الدخول السريع</div>
+          <div class="kpiGrid">
+            <a class="kpi" href="./ambassador.html?id=12837" style="display:block">
+              <div class="kLabel">واجهة السفير</div>
+              <div class="kValue">لوحتي</div>
+              <div class="smallNote" style="margin-top:6px">رابط لكل سفير</div>
+            </a>
+            <a class="kpi" href="./branch.html?branch=مجمع%20أسامة%20بن%20زيد" style="display:block">
+              <div class="kLabel">مدير الفرع</div>
+              <div class="kValue">فرعي</div>
+              <div class="smallNote" style="margin-top:6px">فلترة بالفرع</div>
+            </a>
+            <a class="kpi" href="./admin.html" style="display:block">
+              <div class="kLabel">إدارة السفراء</div>
+              <div class="kValue">الإدارة</div>
+              <div class="smallNote" style="margin-top:6px">أفضل أداء اليوم</div>
+            </a>
+            <div class="kpi">
+              <div class="kLabel">تحديث البيانات</div>
+              <div class="kValue sm">GitHub → Netlify</div>
+              <div class="smallNote" style="margin-top:6px">حدّث <b>data/safaraa.csv</b></div>
+            </div>
+          </div>
+
+          <div class="hairline"></div>
+
+          <ul class="list">
+            <li class="cell">
+              <div>
+                <div class="value">روابط السفراء</div>
+                <div class="label">ambassador.html?id=رقم_السفير</div>
+              </div>
+              <div class="chev">‹</div>
+            </li>
+            <li class="cell">
+              <div>
+                <div class="value">روابط الفروع</div>
+                <div class="label">branch.html?branch=اسم_الفرع</div>
+              </div>
+              <div class="chev">‹</div>
+            </li>
+          </ul>
         </div>
       </div>
 
