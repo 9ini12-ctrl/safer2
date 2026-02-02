@@ -2,117 +2,86 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>واجهة مدير الفرع</title>
   <link rel="stylesheet" href="./ui.css"/>
 </head>
 <body>
-  <div class="wrap">
-    <div class="grid-3">
-      <div class="phone">
-        <div class="header">
-          <p class="h-hello">أهلاً بك</p>
-          <h1 class="h-title">مدير فرع</h1>
-        </div>
-        <div class="hr"></div>
+  <div class="shell">
+    <div class="app">
 
-        <div class="section-title">اختيار فرع</div>
-        <input class="input" id="branchInput" placeholder="اكتب اسم الفرع… (مثال: مجمع أسامة بن زيد)"/>
-        <div class="mini">اضغط Enter للانتقال</div>
-
-        <div class="section-title">روابط جاهزة</div>
-        <div class="pillrow">
-          <a class="badge" href="./branch.html?branch=مجمع%20أسامة%20بن%20زيد">مجمع أسامة</a>
-          <a class="badge" href="./branch.html?branch=مجمع%20عمر%20بن%20الخطاب">مجمع عمر</a>
-          <a class="badge" href="./branch.html?branch=مجمع%20أبي%20بن%20كعب">مجمع أبي</a>
-        </div>
-
-        <div class="hr"></div>
-        <div class="pillrow">
-          <a class="badge" href="./admin.html">إدارة السفراء</a>
-          <a class="badge" href="./ambassador.html?id=12837">واجهة السفير</a>
-        </div>
-      </div>
-
-      <div class="phone" data-page="branch">
-        <div class="header">
-          <p class="h-hello">أهلاً بك</p>
-          <h1 class="h-title" id="branchName">—</h1>
-        </div>
-
-        <div class="hr"></div>
-
-        <div id="state" class="notice">جاري جلب البيانات…</div>
-
-        <div class="kpi">
-          <div class="label">إجمالي المحقق (تراكمي)</div>
-          <div class="value" id="kpi_achieved">—</div>
-        </div>
-
-        <div class="kpi">
-          <div class="label">محقق اليوم</div>
-          <div class="sub" id="kpi_today">—</div>
-        </div>
-
-        <div class="row">
-          <div class="small">الصناديق الفعّالة</div>
-          <div class="big" id="kpi_boxes">—</div>
-        </div>
-        <div class="row">
-          <div class="small">عدد السفراء</div>
-          <div class="big" id="kpi_count">—</div>
-        </div>
-        <div class="row">
-          <div class="small">ترتيب الفرع على الفروع</div>
-          <div class="big" id="kpi_rank">—</div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="section-title">سفراء الفرع الأعلى اليوم</div>
-        <table class="table">
-          <thead>
-            <tr><th>الاسم</th><th>محقق اليوم</th><th>صناديق اليوم</th></tr>
-          </thead>
-          <tbody id="ambTbody"></tbody>
-        </table>
-
-        <a class="more" id="moreLink" href="./admin.html">المزيد</a>
-
-        <div class="footer-actions">
-          <button class="btn ghost" id="refreshBtn">تحديث</button>
-          <a class="btn" href="./admin.html">لوحة الإدارة</a>
-        </div>
-      </div>
-
-      <div class="phone">
-        <div class="header">
-          <p class="h-hello">مساعدة</p>
-          <h1 class="h-title">الباراميتر</h1>
-        </div>
-        <div class="hr"></div>
-        <div class="notice">
-          افتح هذه الصفحة مع:
-          <div class="dashed">
-            <div class="code">?branch=اسم الفرع</div>
-            <div class="mini">مثال: branch.html?branch=مجمع%20أسامة%20بن%20زيد</div>
+      <div class="nav">
+        <div class="navbar">
+          <div class="side">
+            <a class="iconBtn" href="./index.html"><span class="k">الرئيسية</span></a>
           </div>
-          إذا ما أرسلت اسم فرع، سيختار أول فرع موجود في CSV.
+          <div class="navTitle">لوحة الفرع</div>
+          <div class="side" style="justify-content:flex-end">
+            <button class="iconBtn" id="refreshBtn"><span class="k">تحديث</span></button>
+          </div>
+        </div>
+        <div class="largeTitle" id="branchName" data-skel><span class="skel" style="height:28px"></span></div>
+        <div class="subTitle">ملخص الفرع + قائمة السفراء</div>
+      </div>
+
+      <div class="card hidden" id="errCard" style="display:none">
+        <div class="cardInner">
+          <div class="cardTitle">تنبيه</div>
+          <div class="smallNote" id="err">—</div>
         </div>
       </div>
+
+      <div class="card" data-skel>
+        <div class="cardInner">
+          <div class="skel" style="height:18px"></div>
+          <div class="skel" style="height:18px; margin-top:10px"></div>
+          <div class="skel" style="height:18px; margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="card hidden" data-real data-page="branch">
+        <div class="cardInner">
+          <div class="cardTitle">التبديل السريع</div>
+          <input class="input" id="branchInput" placeholder="اكتب اسم الفرع ثم Enter…"/>
+          <div class="smallNote" style="margin-top:10px">مثال: مجمع أسامة بن زيد</div>
+          <div class="hairline"></div>
+          <div class="segment">
+            <button class="segBtn active" id="segOverview">نظرة عامة</button>
+            <button class="segBtn" id="segAmb">السفراء</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" data-real>
+        <div class="cardInner" id="viewOverview">
+          <div class="cardTitle">مؤشرات</div>
+          <div class="kpiGrid">
+            <div class="kpi"><div class="kLabel">إجمالي المحقق (تراكمي)</div><div class="kValue" id="k_achieved">—</div></div>
+            <div class="kpi"><div class="kLabel">محقق اليوم</div><div class="kValue sm" id="k_today">—</div></div>
+            <div class="kpi"><div class="kLabel">الصناديق الفعّالة</div><div class="kValue sm" id="k_boxes">—</div></div>
+            <div class="kpi"><div class="kLabel">عدد السفراء</div><div class="kValue sm" id="k_count">—</div></div>
+          </div>
+          <div class="hairline"></div>
+          <ul class="list">
+            <li class="cell"><div class="label">ترتيب الفرع على الفروع</div><div class="value" id="k_rank">—</div></li>
+          </ul>
+          <div class="hairline"></div>
+          <div class="cardTitle">رسالة اليوم</div>
+          <div style="font-weight:980; line-height:1.65" id="dailyMsg">—</div>
+        </div>
+
+        <div class="cardInner hidden" id="viewAmb">
+          <div class="cardTitle">قائمة السفراء</div>
+          <ul class="list" id="ambList"></ul>
+          <div class="smallNote" style="margin-top:10px">اضغط على السفير لفتح لوحته.</div>
+        </div>
+      </div>
+
+      <div class="smallNote" style="padding:2px 2px 0">استخدم: <b>branch.html?branch=اسم_الفرع</b></div>
+
     </div>
   </div>
-
-  <script>
-    const input = document.getElementById("branchInput");
-    input.addEventListener("keydown", (e)=>{
-      if (e.key === "Enter"){
-        const v = (input.value||"").trim();
-        if (!v) return;
-        location.href = `branch.html?branch=${encodeURIComponent(v)}`;
-      }
-    });
-  </script>
+  <div class="toast" id="toast"><div class="bubble">تم ✅</div></div>
   <script src="./app.js"></script>
 </body>
 </html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>منصة السفراء</title>
+  <link rel="stylesheet" href="./ui.css"/>
+</head>
+<body>
+  <div class="shell">
+    <div class="app">
+
+      <div class="nav">
+        <div class="navbar">
+          <div class="side">
+            <span class="pill">نسخة <b>عرض</b></span>
+          </div>
+          <div class="navTitle">منصة السفراء</div>
+          <div class="side" style="justify-content:flex-end">
+            <a class="iconBtn" href="./admin.html"><span class="k">الإدارة</span></a>
+          </div>
+        </div>
+        <div class="largeTitle">لوحات الأداء</div>
+        <div class="subTitle">سفير • مدير فرع • إدارة</div>
+      </div>
+
+      <div class="card" data-page="home">
+        <div class="cardInner">
+          <div class="cardTitle">رسالة اليوم</div>
+          <img id="dailyImg" class="hidden" alt="daily" style="border-radius:18px; border:1px solid var(--hairline); margin-bottom:10px"/>
+          <div class="smallNote" id="dailyTitle">رسالة اليوم</div>
+          <div style="margin-top:8px; font-weight:980; line-height:1.65" id="dailyMsg"></div>
+          <div class="smallNote" style="margin-top:10px">تُدار من: <b>data/daily.json</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardInner">
+          <div class="cardTitle">الدخول السريع</div>
+          <div class="kpiGrid">
+            <a class="kpi" href="./ambassador.html?id=12837" style="display:block">
+              <div class="kLabel">واجهة السفير</div>
+              <div class="kValue">لوحتي</div>
+              <div class="smallNote" style="margin-top:6px">رابط لكل سفير</div>
+            </a>
+            <a class="kpi" href="./branch.html?branch=مجمع%20أسامة%20بن%20زيد" style="display:block">
+              <div class="kLabel">مدير الفرع</div>
+              <div class="kValue">فرعي</div>
+              <div class="smallNote" style="margin-top:6px">فلترة بالفرع</div>
+            </a>
+            <a class="kpi" href="./admin.html" style="display:block">
+              <div class="kLabel">إدارة السفراء</div>
+              <div class="kValue">الإدارة</div>
+              <div class="smallNote" style="margin-top:6px">أفضل أداء اليوم</div>
+            </a>
+            <div class="kpi">
+              <div class="kLabel">تحديث البيانات</div>
+              <div class="kValue sm">GitHub → Netlify</div>
+              <div class="smallNote" style="margin-top:6px">حدّث <b>data/safaraa.csv</b></div>
+            </div>
+          </div>
+
+          <div class="hairline"></div>
+
+          <ul class="list">
+            <li class="cell">
+              <div>
+                <div class="value">روابط السفراء</div>
+                <div class="label">ambassador.html?id=رقم_السفير</div>
+              </div>
+              <div class="chev">‹</div>
+            </li>
+            <li class="cell">
+              <div>
+                <div class="value">روابط الفروع</div>
+                <div class="label">branch.html?branch=اسم_الفرع</div>
+              </div>
+              <div class="chev">‹</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="toast" id="toast"><div class="bubble">تم ✅</div></div>
+  <script src="./app.js"></script>
+</body>
+</html>

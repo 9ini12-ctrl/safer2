@@ -2,114 +2,101 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>لوحة إدارة السفراء</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>إدارة السفراء</title>
   <link rel="stylesheet" href="./ui.css"/>
 </head>
 <body>
-  <div class="wrap">
-    <div class="grid-3">
-      <div class="phone">
-        <div class="header">
-          <p class="h-hello">أهلاً بك</p>
-          <h1 class="h-title">إدارة السفراء</h1>
+  <div class="shell">
+    <div class="app">
+
+      <div class="nav">
+        <div class="navbar">
+          <div class="side">
+            <a class="iconBtn" href="./index.html"><span class="k">الرئيسية</span></a>
+          </div>
+          <div class="navTitle">الإدارة</div>
+          <div class="side" style="justify-content:flex-end">
+            <button class="iconBtn" id="refreshBtn"><span class="k">تحديث</span></button>
+          </div>
         </div>
-        <div class="hr"></div>
+        <div class="largeTitle">إدارة السفراء</div>
+        <div class="subTitle">أفضل أداء اليوم + الفروع + توليد daily.json</div>
+      </div>
 
-        <div class="topbar">
-          <span class="badge">عدد السجلات: <span id="countTxt">—</span></span>
-          <span class="badge hidden" id="filterBadge">فلترة</span>
-        </div>
-
-        <div class="section-title">بحث سريع</div>
-        <input class="input" id="search" placeholder="ابحث بالاسم / الجوال / رقم السفير…"/>
-        <div class="pillrow" id="searchList" style="margin-top:10px"></div>
-
-        <div class="hr"></div>
-
-        <div class="section-title">تحديث البيانات</div>
-        <button class="btn" id="refreshBtn">تحديث الآن</button>
-        <div class="mini">يتم الجلب من: <b>/data/safaraa.csv</b> (مع كسر الكاش).</div>
-
-        <div class="hr"></div>
-
-        <div class="section-title">روابط</div>
-        <div class="pillrow">
-          <a class="badge" href="./branch.html?branch=مجمع%20أسامة%20بن%20زيد">مدير فرع (مجمع أسامة)</a>
-          <a class="badge" href="./ambassador.html?id=12837">واجهة السفير</a>
+      <div class="card hidden" id="errCard" style="display:none">
+        <div class="cardInner">
+          <div class="cardTitle">تنبيه</div>
+          <div class="smallNote" id="err">—</div>
         </div>
       </div>
 
-      <div class="phone" data-page="admin">
-        <div class="header">
-          <p class="h-hello">إعدادات يومية</p>
-          <h1 class="h-title">رسالة + صورة</h1>
-        </div>
-        <div class="hr"></div>
-
-        <div class="section-title">رابط الصورة</div>
-        <input class="input" id="dailyImage" placeholder="ضع رابط الصورة هنا…"/>
-
-        <div class="section-title">نص رسالة اليوم</div>
-        <textarea class="input" id="dailyMessage" style="min-height:120px; resize:vertical"></textarea>
-
-        <div class="pillrow" style="margin-top:12px">
-          <button class="btn" id="saveBtn">حفظ</button>
-          <a class="btn ghost" href="./ambassador.html?id=12837">معاينة كـ سفير</a>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="section-title">معاينة</div>
-        <img id="previewImg" class="hidden" alt="preview" style="width:100%; border-radius:18px; border:1px solid rgba(0,0,0,.08); margin-bottom:10px"/>
-        <div class="dashed">
-          <div class="note">نص الرسالة</div>
-          <div class="big" id="previewMsg">—</div>
-        </div>
-
-        <div class="notice">
-          النسخة التجريبية تحفظ هذه الإعدادات على جهازك فقط (LocalStorage).
-          لو تبغاها “توصل للجميع” نخليها ملف JSON في GitHub مثل data/daily.json.
+      <div class="card" data-skel>
+        <div class="cardInner">
+          <div class="skel" style="height:18px"></div>
+          <div class="skel" style="height:18px; margin-top:10px"></div>
+          <div class="skel" style="height:18px; margin-top:10px"></div>
         </div>
       </div>
 
-      <div class="phone">
-        <div class="header">
-          <p class="h-hello">تقارير سريعة</p>
-          <h1 class="h-title">الأعلى</h1>
+      <div class="card hidden" data-real data-page="admin">
+        <div class="cardInner">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+            <div class="pill">عدد السجلات: <b id="countTxt">—</b></div>
+            <div class="pill hidden" id="filterBadge">فلترة</div>
+          </div>
+
+          <div class="hairline"></div>
+
+          <div class="cardTitle">بحث سريع</div>
+          <input class="input" id="search" placeholder="ابحث بالاسم / الجوال / رقم السفير…"/>
+          <ul class="list" id="searchOut" style="margin-top:8px"></ul>
         </div>
-        <div class="hr"></div>
-
-        <div id="state" class="notice">جاري جلب البيانات…</div>
-
-        <div class="section-title">السفراء الأعلى اليوم</div>
-        <table class="table">
-          <thead>
-            <tr><th>الاسم</th><th>الفرع</th><th>محقق اليوم</th></tr>
-          </thead>
-          <tbody id="topAmbTbody"></tbody>
-        </table>
-
-        <div class="section-title">الفروع الأعلى اليوم</div>
-        <table class="table">
-          <thead>
-            <tr><th>الفرع</th><th>محقق اليوم</th><th>عدد السفراء</th></tr>
-          </thead>
-          <tbody id="topBranchTbody"></tbody>
-        </table>
       </div>
+
+      <div class="card hidden" data-real>
+        <div class="cardInner">
+          <div class="cardTitle">رسالة اليوم (مشتركة)</div>
+          <div class="smallNote">المنصة Static: هذه الأداة تولّد محتوى <b>data/daily.json</b> لتلصقه في GitHub.</div>
+          <div style="height:10px"></div>
+          <input class="input" id="dailyTitle" placeholder="عنوان (مثال: رسالة اليوم)"/>
+          <div style="height:10px"></div>
+          <input class="input" id="dailyDate" placeholder="تاريخ (اختياري)"/>
+          <div style="height:10px"></div>
+          <input class="input" id="dailyImage" placeholder="رابط صورة (اختياري)"/>
+          <div style="height:10px"></div>
+          <textarea class="textarea" id="dailyMessage" placeholder="نص رسالة اليوم…"></textarea>
+          <div style="height:12px"></div>
+          <button class="primaryBtn" id="copyDailyBtn">نسخ محتوى daily.json</button>
+
+          <div class="hairline"></div>
+
+          <div class="cardTitle">معاينة</div>
+          <img id="pImg" class="hidden" alt="preview" style="border-radius:18px; border:1px solid var(--hairline); margin-bottom:10px"/>
+          <div class="smallNote" id="pTitle">رسالة اليوم</div>
+          <div style="margin-top:6px; font-weight:980; line-height:1.65" id="pMsg">—</div>
+
+          <div class="smallNote" style="margin-top:10px">بعد النسخ: افتح <b>data/daily.json</b> في GitHub → الصق → Commit.</div>
+        </div>
+      </div>
+
+      <div class="card hidden" data-real>
+        <div class="cardInner">
+          <div class="cardTitle">السفراء الأعلى اليوم</div>
+          <ul class="list" id="topAmb"></ul>
+        </div>
+      </div>
+
+      <div class="card hidden" data-real>
+        <div class="cardInner">
+          <div class="cardTitle">الفروع الأعلى اليوم</div>
+          <ul class="list" id="topBranches"></ul>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <script>
-    // Hide loading state once app.js finished rendering tables
-    const hideState = ()=> {
-      const st = document.getElementById("state");
-      if (st) st.classList.add("hidden");
-    };
-    // naive: wait a bit after DOM load
-    window.addEventListener("load", ()=> setTimeout(hideState, 900));
-  </script>
+  <div class="toast" id="toast"><div class="bubble">تم ✅</div></div>
   <script src="./app.js"></script>
 </body>
 </html>
