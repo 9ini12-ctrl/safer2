@@ -1,11 +1,18 @@
 
 const DATA_CSV = "/data/safaraa.csv";
 const DAILY_JSON = "/data/daily.json";
+const ACCESS_JSON = "/data/access.json";
 
 const qs = (s, r=document)=> r.querySelector(s);
 const qsa = (s, r=document)=> Array.from(r.querySelectorAll(s));
 
 const fmtSAR = (n)=> (Number(n||0)).toLocaleString("ar-SA") + " ريال";
+
+function applyReferralTemplate(message, referral){
+  const msg = String(message || "");
+  const rep = String(referral || "");
+  return msg.split("#كود-الإحالة").join(rep);
+}
 
 function cacheBust(url){ return `${url}?v=${Date.now()}`; }
 
@@ -92,54 +99,31 @@ async function loadRows(){
   const text = await fetchText(DATA_CSV);
   return parseCSV(text).map(cleanRow);
 }
-
-async function loadCoupons(){
-  const c = await fetchJSON(COUPONS_JSON);
-  return c || { title:"قائمة الكوبونات", coupons:[] };
+async function loadAccess(){
+  const a = await fetchJSON(ACCESS_JSON);
+  return a || { admin_code:"admin", branch_codes:{} };
 }
 
-// Coupon wallet (per ambassador, per device)
-function walletKey(loginCode){ return "wallet_" + String(loginCode || ""); }
-
-function getWallet(loginCode){
-  try{
-    const raw = localStorage.getItem(walletKey(loginCode));
-    const obj = raw ? JSON.parse(raw) : { coupons: [] };
-    if (!Array.isArray(obj.coupons)) obj.coupons = [];
-    return obj;
-  }catch{
-    return { coupons: [] };
+function setSession(role, token){
+  sessionStorage.setItem("s_role", role);
+  sessionStorage.setItem("s_token", token);
+  sessionStorage.setItem("s_ts", String(Date.now()));
+}
+function clearSession(){
+  sessionStorage.removeItem("s_role");
+  sessionStorage.removeItem("s_token");
+  sessionStorage.removeItem("s_ts");
+}
+function getSession(){
+  return { role: sessionStorage.getItem("s_role") || "", token: sessionStorage.getItem("s_token") || "" };
+}
+function requireRole(expected){
+  const s = getSession();
+  if (!s.role || s.role !== expected){
+    location.replace("index.html");
+    return null;
   }
-}
-function saveWallet(loginCode, wallet){
-  try{
-    localStorage.setItem(walletKey(loginCode), JSON.stringify(wallet || { coupons:[] }));
-  }catch{}
-}
-function getUsedCoupons(){
-  try{
-    const raw = localStorage.getItem("used_coupons");
-    const arr = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(arr) ? arr : []);
-  }catch{
-    return new Set();
-  }
-}
-function saveUsedCoupons(setObj){
-  try{ localStorage.setItem("used_coupons", JSON.stringify(Array.from(setObj))); }catch{}
-}
-function assignUniqueCoupon(loginCode, pool){
-  const wallet = getWallet(loginCode);
-  if (wallet.coupons.length) return wallet.coupons[0];
-  const used = getUsedCoupons();
-  const list = Array.isArray(pool?.coupons) ? pool.coupons : [];
-  const next = list.find(x => x && x.code && !used.has(x.code));
-  if (!next || !next.code) return null;
-  used.add(next.code);
-  saveUsedCoupons(used);
-  wallet.coupons.push(next.code);
-  saveWallet(loginCode, wallet);
-  return next.code;
+  return s;
 }
 
 async function loadDaily(){
@@ -180,6 +164,72 @@ function skeletonOff(){
   qsa("[data-real]").forEach(el=> el.classList.remove("hidden"));
 }
 
+
+// Login
+async function initLogin(){
+  if (!qs("[data-page='login']")) return;
+
+  // Always start fresh on login page
+  clearSession();
+
+  const roleAmb = qs("#roleAmb"), roleBranch = qs("#roleBranch"), roleAdmin = qs("#roleAdmin");
+  const codeEl = qs("#loginCode");
+
+  let role = "ambassador";
+  const setRole = (r)=>{
+    role = r;
+    roleAmb.classList.toggle("active", r==="ambassador");
+    roleBranch.classList.toggle("active", r==="branch");
+    roleAdmin.classList.toggle("active", r==="admin");
+    codeEl.focus();
+  };
+  roleAmb.addEventListener("click", ()=> setRole("ambassador"));
+  roleBranch.addEventListener("click", ()=> setRole("branch"));
+  roleAdmin.addEventListener("click", ()=> setRole("admin"));
+
+  const doLogin = async ()=>{
+    const code = (codeEl.value || "").trim();
+    if (!code){ toast("اكتب الرمز"); return; }
+
+    const access = await loadAccess();
+
+    if (role === "admin"){
+      if (code !== (access.admin_code || "admin")){ toast("رمز الإدارة غير صحيح"); return; }
+      setSession("admin", code);
+      location.href = "admin.html";
+      return;
+    }
+
+    if (role === "branch"){
+      const branchName = (access.branch_codes || {})[code];
+      if (!branchName){ toast("رمز الفرع غير معروف"); return; }
+      setSession("branch", code);
+      location.href = `branch.html?code=${encodeURIComponent(code)}`;
+      return;
+    }
+
+    // ambassador
+    setSession("ambassador", code);
+    location.href = `ambassador.html?id=${encodeURIComponent(code)}`;
+  };
+
+  qs("#loginBtn").addEventListener("click", doLogin);
+  codeEl.addEventListener("keydown", (e)=>{ if (e.key==="Enter") doLogin(); });
+
+  qs("#exAmb").addEventListener("click", ()=>{ setRole("ambassador"); codeEl.value="83923"; doLogin(); });
+  qs("#exBranch").addEventListener("click", ()=>{ setRole("branch"); codeEl.value="0123"; doLogin(); });
+  qs("#exAdmin").addEventListener("click", ()=>{ setRole("admin"); codeEl.value="admin"; doLogin(); });
+
+  // Daily preview on login
+  try{
+    const daily = await loadDaily();
+    const elT = qs("#dailyTitle"), elM = qs("#dailyMsg"), elI = qs("#dailyImg");
+    if (elT) elT.textContent = daily.title || "رسالة اليوم";
+    if (elM) elM.textContent = daily.message || "";
+    if (elI && daily.image_url){ elI.src = daily.image_url; elI.classList.remove("hidden"); }
+  }catch{}
+}
+
 // Home
 async function initHome(){
   if (!qs("[data-page='home']")) return;
@@ -197,22 +247,20 @@ async function initHome(){
 // Ambassador
 async function initAmbassador(){
   if (!qs("[data-page='ambassador']")) return;
-  const code = getParam("code");
+  const sess = requireRole("ambassador");
+  if (!sess) return;
   const id = getParam("id");
   const phone = getParam("phone");
   try{
     const [rows, daily] = await Promise.all([loadRows(), loadDaily()]);
     const ambassadors = rows.filter(r=> r.role === "ambassador");
     let me = null;
-    if (code) me = ambassadors.find(r=> r.login_code === code);
-    if (!me && id) me = ambassadors.find(r=> r.ambassador_id === id);
+    if (id) me = ambassadors.find(r=> r.ambassador_id === id);
     if (!me && phone) me = ambassadors.find(r=> r.phone === phone);
 
     if (!me) { showError("لم يتم العثور على سفير مطابق للرابط. استخدم: ?id=رقم_السفير"); return; }
 
-        // Lock role/session to this ambassador
-    const myCode = me.login_code || me.ambassador_id || "";
-    if (sess.token && myCode && sess.token !== myCode){
+    if (sess.token && id && sess.token !== id){
       showError("غير مصرح: يلزم تسجيل الخروج ثم الدخول برمز السفير الصحيح.");
       return;
     }
@@ -234,48 +282,10 @@ async function initAmbassador(){
     setProgress(qs("#pAmount"), me.today_amount, me.daily_target_amount);
 
     const unlocked = evalRule(me.coupon_unlock_rule, me);
+    qs("#couponNote").textContent = unlocked && me.coupon_code ? "كوبونك جاهز ✅" : "سيفتح الكوبون عند تحقق الهدف";
+    qs("#couponCode").textContent = unlocked && me.coupon_code ? me.coupon_code : ("******-******-" + (me.ambassador_id||"00000"));
 
-    const myCode = me.login_code || me.ambassador_id || "";
-    let coupon = null;
-
-    if (unlocked){
-      // If CSV provides a coupon_code, keep it for this ambassador
-      if (me.coupon_code){
-        const w = getWallet(myCode);
-        if (!w.coupons.includes(me.coupon_code)){
-          w.coupons.push(me.coupon_code);
-          saveWallet(myCode, w);
-        }
-        coupon = me.coupon_code;
-      }else{
-        const pool = await loadCoupons();
-        coupon = assignUniqueCoupon(myCode, pool);
-      }
-    }
-
-    qs("#couponNote").textContent = coupon ? "كوبونك جاهز ✅" : "سيفتح الكوبون عند تحقق الهدف";
-    qs("#couponCode").textContent = coupon ? coupon : ("******-******-" + (me.ambassador_id||"00000"));
-
-    // Render wallet
-    const ul = qs("#walletList");
-    if (ul){
-      const w = getWallet(myCode);
-      ul.innerHTML = "";
-      if (w.coupons.length){
-        w.coupons.slice().reverse().forEach(code=>{
-          const li = document.createElement("li");
-          li.className = "cell";
-          li.innerHTML = `<div><div class="value">${code}</div><div class="label">محفوظ لك</div></div><div class="chev">✓</div>`;
-          ul.appendChild(li);
-        });
-      }else{
-        const li = document.createElement("li");
-        li.className = "cell";
-        li.innerHTML = `<div><div class="value">لا يوجد كوبون بعد</div><div class="label">انتظر تحقق الشرط</div></div><div class="chev">—</div>`;
-        ul.appendChild(li);
-      }
-    }
-qs("#rankA").textContent = me.rank_on_ambassadors ? me.rank_on_ambassadors.toLocaleString("ar-SA") : "—";
+    qs("#rankA").textContent = me.rank_on_ambassadors ? me.rank_on_ambassadors.toLocaleString("ar-SA") : "—";
     qs("#rankB").textContent = me.rank_on_ambassadors_of_branch ? me.rank_on_ambassadors_of_branch.toLocaleString("ar-SA") : "—";
     qs("#rankBr").textContent = me.rank_on_branch ? me.rank_on_branch.toLocaleString("ar-SA") : "—";
 
@@ -287,8 +297,10 @@ qs("#rankA").textContent = me.rank_on_ambassadors ? me.rank_on_ambassadors.toLoc
     }
 
     qs("#shareBtn").addEventListener("click", async ()=>{
-      const url = me.share_url || location.href;
-      const msg = `${daily.message || "شاركنا الأجر"}\n${url}`;
+      const referral = me.share_url || location.href;
+      let msg = applyReferralTemplate(daily.message || "شاركنا الأجر", referral);
+      if (!msg.includes(referral)) msg = (msg.trim() + "\n" + referral).trim();
+      if (daily.image_url && !msg.includes(daily.image_url)) msg = (msg.trim() + "\n" + daily.image_url).trim();
       if (navigator.share){
         try{ await navigator.share({ text: msg, url }); toast("تمت المشاركة ✅"); return; }catch{}
       }
@@ -297,6 +309,8 @@ qs("#rankA").textContent = me.rank_on_ambassadors ? me.rank_on_ambassadors.toLoc
     });
 
     qs("#refreshBtn").addEventListener("click", ()=> location.reload());
+    const lo = qs("#logoutBtn");
+    if (lo) lo.addEventListener("click", ()=>{ clearSession(); location.replace("index.html"); });
     skeletonOff();
   }catch(e){
     showError(e.message || "حدث خطأ غير متوقع");
@@ -306,13 +320,36 @@ qs("#rankA").textContent = me.rank_on_ambassadors ? me.rank_on_ambassadors.toLoc
 // Branch
 async function initBranch(){
   if (!qs("[data-page='branch']")) return;
+  const sess = requireRole("branch");
+  if (!sess) return;
+  const code = getParam("code");
   const b = getParam("branch") || getParam("b");
   try{
-    const [rows, daily] = await Promise.all([loadRows(), loadDaily()]);
+    const [rows, daily, access] = await Promise.all([loadRows(), loadDaily(), loadAccess()]);
     const ambassadors = rows.filter(r=> r.role === "ambassador");
-    const chosen = b || (ambassadors[0]?.branch || "");
+
+    let chosen = "";
+    if (code){
+      if (sess.token && sess.token !== code){
+        showError("غير مصرح: يلزم تسجيل الخروج ثم الدخول برمز الفرع الصحيح.");
+        return;
+      }
+      chosen = (access.branch_codes || {})[code] || "";
+      if (!chosen){
+        showError("رمز الفرع غير معروف.");
+        return;
+      }
+    } else if (b) {
+      // optional direct branch name (still locked by session)
+      showError("استخدم رمز الفرع للدخول (مثال: ?code=0123).");
+      return;
+    } else {
+      showError("استخدم: ?code=رمز_الفرع");
+      return;
+    }
+
     const inBranch = ambassadors.filter(r=> r.branch === chosen);
-    if (!chosen || !inBranch.length){ showError("لم يتم العثور على فرع. استخدم: ?branch=اسم_الفرع"); return; }
+    if (!inBranch.length){ showError("لا توجد بيانات لهذا الفرع."); return; }
 
     qs("#branchName").textContent = chosen;
 
@@ -353,7 +390,7 @@ async function initBranch(){
           <div class="value">${fmtSAR(r.today_amount)}</div>
           <div class="value small">${r.today_opened_boxes.toLocaleString("ar-SA")} صناديق</div>
         </div>`;
-      li.addEventListener("click", ()=> location.href = `ambassador.html?id=${encodeURIComponent(r.ambassador_id)}`);
+      li.addEventListener("click", ()=>{ toast("للدخول كسفير: سجّل خروج ثم ادخل برمز السفير"); });
       ul.appendChild(li);
     });
 
@@ -364,6 +401,8 @@ async function initBranch(){
       }
     });
     qs("#refreshBtn").addEventListener("click", ()=> location.reload());
+    const lo = qs("#logoutBtn");
+    if (lo) lo.addEventListener("click", ()=>{ clearSession(); location.replace("index.html"); });
     skeletonOff();
   }catch(e){
     showError(e.message || "حدث خطأ غير متوقع");
@@ -373,6 +412,8 @@ async function initBranch(){
 // Admin
 async function initAdmin(){
   if (!qs("[data-page='admin']")) return;
+  const sess = requireRole("admin");
+  if (!sess) return;
   const branchFilter = getParam("branch") || "";
   try{
     const [rows, daily] = await Promise.all([loadRows(), loadDaily()]);
@@ -421,7 +462,7 @@ async function initAdmin(){
         <div><div class="value">${r.name}</div><div class="label">${r.branch}</div></div>
         <div style="text-align:left"><div class="value">${fmtSAR(r.today_amount)}</div>
         <div class="value small">${r.today_opened_boxes.toLocaleString("ar-SA")} صناديق</div></div>`;
-      li.addEventListener("click", ()=> location.href = `ambassador.html?id=${encodeURIComponent(r.ambassador_id)}`);
+      li.addEventListener("click", ()=>{ toast("للدخول كسفير: سجّل خروج ثم ادخل برمز السفير"); });
       ulA.appendChild(li);
     });
 
@@ -439,7 +480,7 @@ async function initAdmin(){
       li.innerHTML = `
         <div><div class="value">${o.branch}</div><div class="label">${o.amb.toLocaleString("ar-SA")} سفير</div></div>
         <div style="text-align:left"><div class="value">${fmtSAR(o.today)}</div><div class="chev">‹</div></div>`;
-      li.addEventListener("click", ()=> location.href = `branch.html?branch=${encodeURIComponent(o.branch)}`);
+      li.addEventListener("click", ()=>{ toast("للدخول كفرع: سجّل خروج ثم ادخل برمز الفرع"); });
       ulB.appendChild(li);
     });
 
@@ -451,12 +492,14 @@ async function initAdmin(){
         .slice(0,8).forEach(r=>{
           const li=document.createElement("li"); li.className="cell";
           li.innerHTML = `<div><div class="value">${r.name}</div><div class="label">${r.branch}</div></div><div class="chev">‹</div>`;
-          li.addEventListener("click", ()=> location.href = `ambassador.html?id=${encodeURIComponent(r.ambassador_id)}`);
+          li.addEventListener("click", ()=>{ toast("للدخول كسفير: سجّل خروج ثم ادخل برمز السفير"); });
           out.appendChild(li);
         });
     });
 
     qs("#refreshBtn").addEventListener("click", ()=> location.reload());
+    const lo = qs("#logoutBtn");
+    if (lo) lo.addEventListener("click", ()=>{ clearSession(); location.replace("index.html"); });
     skeletonOff();
   }catch(e){
     showError(e.message || "حدث خطأ غير متوقع");
@@ -464,5 +507,9 @@ async function initAdmin(){
 }
 
 document.addEventListener("DOMContentLoaded", ()=>{
-  initHome(); initAmbassador(); initBranch(); initAdmin();
+  initLogin();
+  initHome();
+  initAmbassador();
+  initBranch();
+  initAdmin();
 });
